@@ -1,0 +1,55 @@
+# Model files - these are too large for Git
+vit_model/
+vit-model/
+vit-finetuned-crops/
+vit_plant_disease.pth
+
+# Dataset files
+dataset/
+
+# Temporary uploads
+temp_uploads/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Environment
+.venv/
+venv/
+env/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Local environment variables
+.env.local
+.env.*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Dependencies
+node_modules/
+
+# Other common files
+*.tmp
+*.bak
+*~

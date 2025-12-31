@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tomato Disease Chatbot</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-r from-green-100 to-green-200 min-h-screen flex flex-col items-center py-10 px-4">
+  <h1 class="text-3xl font-bold text-green-800 mb-4">🍅 Tomato Plant Health Assistant</h1>
+
+  <div class="bg-white shadow-xl rounded-2xl p-6 w-full max-w-md">
+    <form id="uploadForm" class="flex flex-col space-y-4">
+      <input type="file" id="imageInput" name="image" accept="image/*" required class="border rounded-lg p-2" />
+      <button type="submit" class="bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg">
+        Analyze Image
+      </button>
+    </form>
+
+    <div id="chatContainer" class="mt-6 space-y-4 max-h-96 overflow-y-auto">
+      <!-- Chat messages will appear here -->
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("uploadForm");
+    const imageInput = document.getElementById("imageInput");
+    const chatContainer = document.getElementById("chatContainer");
+
+    function addMessage(sender, text) {
+      const message = document.createElement("div");
+      message.className = sender === "bot"
+        ? "bg-green-100 text-gray-800 p-3 rounded-xl w-fit max-w-full"
+        : "bg-blue-100 text-gray-800 p-3 rounded-xl self-end w-fit max-w-full";
+      message.innerText = text;
+      chatContainer.appendChild(message);
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const file = imageInput.files[0];
+      if (!file) return;
+
+      addMessage("user", "🔍 Uploading and analyzing the tomato leaf...");
+      
+      const formData = new FormData();
+      formData.append("image", file);
+
+      try {
+        const res = await fetch("/predict", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+
+        addMessage("bot", `📸 Predicted class: ${data.prediction}`);
+        addMessage("bot", `💡 Explanation: ${data.explanation}`);
+      } catch (err) {
+        addMessage("bot", "⚠️ Something went wrong. Please try again.");
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
