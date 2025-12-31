@@ -19,9 +19,14 @@ RUN apt-get update \
 # Copy requirements first to leverage Docker cache
 COPY requirements.txt /app/requirements.txt
 
-# Install Python dependencies. Use PyTorch CPU index so prebuilt CPU wheels are picked up
-# (avoids large source builds during pip install).
-RUN pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
+# Upgrade pip first
+RUN pip install --no-cache-dir --upgrade pip
+
+# Install PyTorch first with CPU index URL
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+# Install other dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY . /app/
