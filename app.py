@@ -9,7 +9,6 @@ from PyPDF2 import PdfReader
 from datetime import datetime
 from gtts import gTTS
 import os
-import re
 import logging
 
 # ------------------ App Setup ------------------
@@ -25,15 +24,39 @@ os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 # ------------------ Device ------------------
 device = torch.device("cpu")  # Render has no GPU
 
-# ------------------ Lazy Models ------------------
+# ------------------ Lazy Globals ------------------
 processor = None
 model = None
 model_loaded = False
 llm = None
 
 
+# ------------------ Fast Root Route (CRITICAL) ------------------
+@app.route("/", methods=["GET"])
+def root():
+    return jsonify({
+        "status": "running",
+        "message": "AI server is up"
+    })
+
+
+# ------------------ Health Check ------------------
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({
+        "status": "ok",
+        "model_loaded": model_loaded
+    })
+
+
+# ------------------ Helpers ------------------
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
+
+
 def load_vit_model():
     global processor, model, model_loaded
+
     if model_loaded:
         return
 
@@ -41,7 +64,7 @@ def load_vit_model():
         print("⚠️ vit_model directory not found")
         return
 
-    print("⏳ Loading Vision Transformer...")
+    print("⏳ Lazy loading Vision Transformer...")
     processor = ViTImageProcessor.from_pretrained("vit_model")
     model = ViTForImageClassification.from_pretrained("vit_model").to(device)
     model_loaded = True
@@ -58,16 +81,6 @@ def get_llm():
         )
         print("✅ LLM ready")
     return llm
-
-
-def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in app.config["ALLOWED_EXTENSIONS"]
-
-
-# ------------------ Health ------------------
-@app.route("/health")
-def health():
-    return jsonify({"status": "ok", "model_loaded": model_loaded})
 
 
 # ------------------ Predict ------------------
@@ -116,8 +129,8 @@ def assistant():
     if not prompt:
         return jsonify({"reply": "Prompt required"}), 400
 
-    response = get_llm().invoke(prompt).content
-    return jsonify({"reply": response})
+    reply = get_llm().invoke(prompt).content
+    return jsonify({"reply": reply})
 
 
 # ------------------ File Chat ------------------
@@ -135,14 +148,14 @@ def file_chat():
         if filename.lower().endswith(".pdf"):
             reader = PdfReader(path)
             content = "\n".join(
-                page.extract_text() for page in reader.pages if page.extract_text()
+                page.extract_text()
+                for page in reader.pages
+                if page.extract_text()
             )
 
         os.remove(path)
 
-    query = prompt or "Please analyze and advise."
-    final_prompt = f"{query}\n\nContext:\n{content}"
-
+    final_prompt = f"{prompt or 'Please analyze and advise.'}\n\nContext:\n{content}"
     reply = get_llm().invoke(final_prompt).content
     return jsonify({"reply": reply})
 
@@ -193,3 +206,5 @@ def speak():
 
 # ------------------ Logging ------------------
 logging.basicConfig(level=logging.INFO)
+
+
