@@ -28,16 +28,28 @@ else:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-# Load Vision Transformer model
-try:
-    vit_path = "vit_model"
-    processor = ViTImageProcessor.from_pretrained(vit_path)
-    model = ViTForImageClassification.from_pretrained(vit_path).to(device)
-    model_loaded = True
-    print("✅ Vision Transformer model loaded successfully")
-except Exception as e:
-    print(f"❌ Failed to load Vision Transformer model: {e}")
+# Initialize model variables to None
+processor = None
+model = None
+model_loaded = False
+
+# Attempt to load Vision Transformer model only if the model directory exists
+if os.path.exists("vit_model"):
+    try:
+        vit_path = "vit_model"
+        print("Loading Vision Transformer model...")
+        processor = ViTImageProcessor.from_pretrained(vit_path)
+        model = ViTForImageClassification.from_pretrained(vit_path).to(device)
+        model_loaded = True
+        print("✅ Vision Transformer model loaded successfully")
+    except Exception as e:
+        print(f"❌ Failed to load Vision Transformer model: {e}")
+        model_loaded = False
+else:
+    print("⚠️  Vision Transformer model directory not found, model will not be loaded")
+    print("   To use image prediction features, please add the 'vit_model' directory with the required model files")
     model_loaded = False
+
 
 # Load LLM (Llama-3.3-70b-versatile via Groq)
 try:
@@ -75,6 +87,10 @@ def predict():
         file.save(temp_path)
 
         image = Image.open(temp_path).convert('RGB')
+        # Ensure model and processor are loaded before using them
+        if processor is None or model is None:
+            return jsonify({'error': 'Vision model is not properly loaded'}), 500
+        
         inputs = processor(images=image, return_tensors="pt").to(device)
 
         with torch.no_grad():
